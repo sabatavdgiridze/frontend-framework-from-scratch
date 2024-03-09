@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8"/>
+    <script type="text/javascript" src="framework.js"></script>
+    <style>
+      body {
+        width: 500px;
+        margin: 2em auto;
+      }
+      li {
+        margin: 0.5em 0;
+      }
+      li > span {
+        cursor: pointer;
+        margin-inline-end: 0.5em;
+      }
+      li > input {
+        margin-inline-end: 0.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+      let state = {
+        current_todo: "",
+        edit: {
+          index: null,
+          original: null,
+          edited: null,
+        },
+        todos: [
+          "Get a house",
+          "Get a girlfriend"
+        ]
+      };
+
+      let reducers = {
+        "update_current_todo": (state, current_todo) => {
+          return {
+            ...state,
+            current_todo
+          };
+        },
+        "add_todo": (state) => {
+          return {
+            ...state,
+            current_todo: "",
+            todos: [...state.todos, state.current_todo]
+          };
+        },
+        "start_editing_todo": (state, index) => {
+          return {
+            ...state,
+            edit: {
+              index: index,
+              origin: state.todos[index],
+              edited: state.todos[index]
+            }
+          };
+        },
+        "edit_todo": (state, edited) => {
+          return {
+            ...state,
+            edit: {
+              ...state.edit,
+              edited
+            }
+          };
+        },
+        "save_edited_todo": (state) => {
+          let todos = [...state.todos];
+          todos[state.edit.index] = state.edit.edited;
+
+          return {
+            ...state,
+            edit: {
+              index: null,
+              original: null,
+              edited: null
+            },
+            todos
+          };
+        },
+        "cancel_editing_todo": (state) => {
+          return {
+            ...state,
+            edit: {
+              index: null,
+              original: null,
+              edited: null
+            }
+          }
+        },
+        "remove_todo": (state, index) => {
+          return {
+            ...state,
+            todos: state.todos.filter((todo, todo_index) => todo_index !== index)
+          };
+        }
+      };
+
+      function app_view(state, emit) {
+        return virtual_node__fragment([
+          virtual_node__element(
+            "h1",
+            {
+              on: {
+
+              },
+              classes: [
+
+              ]
+            },
+            [
+              virtual_node__text("My TODO's")
+            ]
+          ),
+          create_todo__component(state, emit),
+          todo_list__component(state, emit)
+        ]);
+      }
+
+      function create_todo__component({ current_todo }, emit) {
+        return virtual_node__element(
+          "div",
+          {
+            on: {
+
+            },
+            classes: [
+
+            ]
+          },
+          [
+            virtual_node__element(
+              "label",
+              {
+                for: "todo_input",
+                on: {
+
+                },
+                classes: [
+
+                ]
+              },
+              [
+                virtual_node__text("New TODO")
+              ]
+            ),
+            virtual_node__element(
+              "input",
+              {
+                type: "text",
+                id: "todo_input",
+                value: current_todo,
+                on: {
+                  input: ({target}) => {
+                    emit("update_current_todo", target.value);
+                  }
+                },
+                classes: [
+
+                ]
+              },
+              [
+
+              ]
+            ),
+            virtual_node__element(
+              "button",
+              {
+                disabled: current_todo.length < 3,
+                on: {
+                  click: () => {
+                    emit("add_todo");
+                  }
+                },
+                classes: [
+                  
+                ]
+              },
+              [
+                virtual_node__text("Add")
+              ]
+            ),
+          ]
+        );
+      }
+
+      function todo_list__component({ todos, edit }, emit) {
+        return virtual_node__element(
+          "ul",
+          {
+            on: {
+
+            },
+            classes: [
+
+            ]
+          },
+          todos.map((todo, index) => todo_item__component({ todo, index, edit }, emit))
+        );
+      }
+
+      function todo_item__component({ todo, index, edit }, emit) {
+        let is_editing = index === edit.index;
+        if (is_editing) {
+          return virtual_node__element(
+            "li",
+            {
+              on: {
+
+              },
+              classes: [
+
+              ]
+            }, 
+            [
+              virtual_node__element(
+                "input",
+                {
+                  value: edit.edited,
+                  on: {
+                    input: ({ target }) => {
+                      emit("edit_todo", target.value);
+                    }
+                  },
+                  classes: [
+
+                  ]
+                },
+                [
+
+                ]
+              ),
+              virtual_node__element(
+                "button",
+                {
+                  on: {
+                    click: () => {
+                      emit("save_edited_todo");
+                    }
+                  },
+                  classes: [
+
+                  ]
+                },
+                [
+                  virtual_node__text("Save")
+                ]
+              ),
+              virtual_node__element(
+                "button",
+                {
+                  on: {
+                    click: () => {
+                      emit("cancel_editing_todo");
+                    }
+                  },
+                  classes: [
+
+                  ]
+                },
+                [
+                  virtual_node__text("Cancel")
+                ]
+              ),
+            ]
+          );
+        } else {
+          return virtual_node__element(
+            "li",
+            {
+              on: {
+
+              },
+              classes: [
+
+              ]
+            },
+            [
+              virtual_node__element(
+                "span",
+                {
+                  on: {
+                    dblclick: () => emit("start_editing_todo", index)
+                  },
+                  classes: [
+
+                  ]
+                },
+                [
+                  virtual_node__text(todo)
+                ]
+              ),
+              virtual_node__element(
+                "button",
+                {
+                  on: {
+                    click: () => emit("remove_todo", index)
+                  },
+                  classes: [
+
+                  ]
+                },
+                [
+                  virtual_node__text("Done")
+                ]
+              )
+            ]
+          );
+        }
+      }
+      todo_app = new App({ state, view: app_view, reducers });
+      todo_app.mount(document.body);
+    </script>
+  </body>
+</html>

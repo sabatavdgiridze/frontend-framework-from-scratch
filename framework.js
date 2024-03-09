@@ -59,8 +59,10 @@ Observer.prototype.add_finalizer = function (finalizer) {
 }
 
 Observer.prototype.dispatch = function (command_name, command_payload) {
-  if (this.command_resolvers.hasOwnProperty(command_name)) {
-    this.command_resolvers[command_name].forEach((command_resolver) => command_resolver(command_payload));
+  if (this.subscriptions.hasOwnProperty(command_name)) {
+    this.subscriptions[command_name].forEach((command_resolver) => {
+      command_resolver(command_payload);
+    });
   }
   this.finalizers.forEach((finalizer) => finalizer());
 }
@@ -91,6 +93,21 @@ function remove_classes(dom_element) {
   dom_element.className = null;
 }
 
+function set_attributes(dom_element, props) {
+  let { classes, on, ...other_attributes } = props;
+  for (let [attribute_name, attribute_value] of Object.entries(other_attributes)) {
+    // dom_element.setAttribute(attribute_name, attribute_value);
+    dom_element[attribute_name] = attribute_value;
+  }
+}
+function remove_attributes(dom_element, props) {
+  let { classes, on, ...other_attributes } = props;
+  for (let [attribute_name, attribute_value] of Object.entries(other_attributes)) {
+    // dom_element.removeAttribute(attribute_name, attribute_value);
+    dom_element[attribute_name] = null;
+  }
+}
+
 function mount_DOM(virtual_dom_node, parent_dom_element) {
   switch (virtual_dom_node["type"]) {
     case "fragment_node": {
@@ -99,19 +116,21 @@ function mount_DOM(virtual_dom_node, parent_dom_element) {
       break;
     }
     case "element_node": {
-      element_node = document.createElement(virtual_dom_node["element_tag"]);
+      let element_node = document.createElement(virtual_dom_node["element_tag"]);
       virtual_dom_node.dom_element = element_node;
       parent_dom_element.append(element_node);
 
-      add_events_dictionary(virtual_dom_node["element_props"]["on"]);
-      set_class_array(virtual_dom_node["element_props"]["classes"]);
+      add_events_dictionary(element_node, virtual_dom_node["element_props"]["on"]);
+      set_class_array(element_node, virtual_dom_node["element_props"]["classes"]);
+      
+      set_attributes(element_node, virtual_dom_node["element_props"]);
 
       virtual_dom_node["children"].forEach((child) => mount_DOM(child, element_node));
 
       break;
     }
     case "text_node": {
-      text_node = document.createTextNode(virtual_dom_node["text"]);
+      let text_node = document.createTextNode(virtual_dom_node["text"]);
       virtual_dom_node.dom_element = text_node;
       parent_dom_element.append(text_node);
 
@@ -131,6 +150,8 @@ function destroy_DOM(virtual_dom_node) {
 
       remove_classes(virtual_dom_node.dom_element);
       remove_events_dictionary(virtual_dom_node.dom_element, virtual_dom_node["element_props"]["on"]);
+
+      remove_attributes(virtual_dom_node.dom_element, virtual_dom_node["element_props"]);
 
       virtual_dom_node.dom_element.remove();
 
@@ -157,7 +178,8 @@ function App({ state, view, reducers = {} }) {
   for (let reducer_name in reducers) {
     this.handlers.push(
       this.observer.subscribe(reducer_name, (command_payload) => {
-        this.state = reducers[reducer_name](this.state, command_payload)
+        this.state = reducers[reducer_name](this.state, command_payload);
+        this.render_app();
       })
     );
   }
@@ -173,7 +195,12 @@ App.prototype.render_app = function() {
   if (this.virtual_dom_root) {
     destroy_DOM(this.virtual_dom_root);
   }
-  this.virtual_dom_root = this.view(this.state, this.emit);
+
+  emit = (command_name, command_payload) => {
+    this.emit(command_name, command_payload);
+  }
+
+  this.virtual_dom_root = this.view(this.state, emit);
   mount_DOM(this.virtual_dom_root, this.parent_dom_element);
 }
 

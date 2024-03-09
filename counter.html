@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8"/>
+    <script type="text/javascript" src="framework.js"></script>
+
+    <style>
+      body {
+        text-align: center;
+        margin: 2em;
+        font-size: 2em;
+      }
+
+      button {
+        font-size: 1em;
+        width: 1.5em;
+      }
+      
+      span {
+        margin: 0 1em;
+      }
+
+      span.positive {
+        color:chocolate;
+      }
+      span.negative {
+        color:brown;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+      let state = { count: 0 };
+      let reducers = {
+        add: (state) => ({ count: state.count + 1 }),
+        sub: (state) => ({ count: state.count - 1 })
+      }
+
+      function view(state, emit) {
+        return virtual_node__fragment([
+          virtual_node__element(
+            "button",
+            {
+              on: {
+                click: () => emit("sub")
+              },
+              classes: [
+
+              ]
+            },
+            [
+              virtual_node__text("-")
+            ]
+          ),
+          virtual_node__element(
+            "span",
+            {
+              on: {
+
+              },
+              classes: [
+                `${ state.count < 0 ? "negative" : "positive" }`
+              ]
+            },
+            [
+              virtual_node__text(`${state.count}`)
+            ]
+          ),
+          virtual_node__element(
+            "button",
+            {
+              on: {
+                click: () => emit("add")
+              },
+              classes: [
+
+              ]
+            },
+            [
+              virtual_node__text("+")
+            ]
+          ),
+        ]);
+      }
+      counter_app = new App({ state, view, reducers });
+      counter_app.mount(document.body);
+    </script>
+  </body>
+</html>
